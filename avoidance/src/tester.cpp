@@ -14,9 +14,9 @@ int main(int argc, char** argv)
     const Geodesic &geod = Geodesic::WGS84();
     // Distance from JFK to LHR
     double
-        lat1 = 26.509557,
-        lon1 = 80.228221,             // JFK Airport
-        lat2 = 26.508559, lon2 = 80.227223; // LHR Airport
+        lat1 = 50,
+        lon1 = 50,                    // JFK Airport
+        lat2 = 50.001, lon2 = 50.001; // LHR Airport
     double s12;
     geod.Inverse(lat1, lon1, lat2, lon2, s12);
     cout << s12      << " m\n";

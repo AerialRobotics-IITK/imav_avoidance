@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
     <node name="global_pose" type="enu" pkg="avoidance" output="screen">
-        <param name="MAV2" value="true"/>
+        <param name="global/MAVId" value="1"/>
     </node>
 </launch>

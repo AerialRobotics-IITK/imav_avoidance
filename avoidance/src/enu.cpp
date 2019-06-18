@@ -40,22 +40,23 @@ void trajCallback(const mavros_msgs::Trajectory &msg){
 }
 
 double tToHit(avoidance_msgs::RelPose mav1, avoidance_msgs::RelPose mav2);
+void fillUnusedTrajectoryPoint(mavros_msgs::PositionTarget& point);
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "enu");
     ros::NodeHandle nh;
     std::string MAVId;
-    double tToHitThresh;
+    double tToHitThresh=5;
    
     nh.getParam("MAVId", MAVId);
     
     ros::Subscriber mav1PoseSub = nh.subscribe("pose_MAV1", 1, MAV1Callback);
     ros::Subscriber mav2PoseSub = nh.subscribe("pose_MAV2", 1, MAV2Callback);
     ros::Subscriber mav3PoseSub = nh.subscribe("pose_MAV3", 1, MAV3Callback);
-    ros::Subscriber trajDesLocalSub = nh.subscribe("pilot/trajectory/desire", 1, trajCallback);
-    
+    ros::Subscriber trajDesLocalSub = nh.subscribe("pilot/trajectory/desired", 1, trajCallback);
+
     ros::Publisher mavCompProcPub = nh.advertise<mavros_msgs::CompanionProcessStatus>("pilot/companion_process/status",1);
-    ros::Publisher trajgGenLocalPub = nh.advertise<mavros_msgs::Trajectory>("pilot/trajectory/generated", 1);
+    ros::Publisher trajGenLocalPub = nh.advertise<mavros_msgs::Trajectory>("pilot/trajectory/generated", 1);
     ros::Rate loopRate(10);
 
     mavros_msgs::CompanionProcessStatus mavCompProc;
@@ -63,14 +64,34 @@ int main(int argc, char** argv){
     mavCompProc.component = 196;
 
     mavros_msgs::Trajectory trajGenLocal;
+    trajGenLocal.header.stamp = ros::Time::now();
+    trajGenLocal.type = 0;
+    trajGenLocal.header.frame_id = "local_origin";
 
     while(ros::ok()){
         double tToHitMAV = tToHit(MAV1Pose, MAV2Pose);
         if (tToHitMAV>tToHitThresh && MAV3) double tToHitMAV = tToHit(MAV1Pose, MAV3Pose);
-        if (tToHitMAV<tToHitThresh){
-            double alt = SelfTraj.point_1.position.z;
-        }
 
+        if (tToHitMAV<tToHitThresh){
+            trajGenLocal.point_valid = {true, false, false, false, false};
+            trajGenLocal.point_1 = SelfTraj.point_2;
+            trajGenLocal.point_1.position.z = SelfTraj.point_2.position.z-1;
+            trajGenLocal.point_1.velocity.x = NAN;
+            trajGenLocal.point_1.velocity.y = NAN;
+            trajGenLocal.point_1.velocity.z = NAN;
+            trajGenLocal.point_1.acceleration_or_force.x = NAN;
+            trajGenLocal.point_1.acceleration_or_force.y = NAN;
+            trajGenLocal.point_1.acceleration_or_force.z = NAN;
+            trajGenLocal.point_1.yaw = (SelfTraj.point_2.yaw);
+            trajGenLocal.point_1.yaw_rate = NAN;
+            trajGenLocal.time_horizon = {NAN, NAN, NAN, NAN, NAN};
+            fillUnusedTrajectoryPoint(trajGenLocal.point_2);
+            fillUnusedTrajectoryPoint(trajGenLocal.point_3);
+            fillUnusedTrajectoryPoint(trajGenLocal.point_4);
+            fillUnusedTrajectoryPoint(trajGenLocal.point_5);
+        }
+        else trajGenLocal.point_valid = {false, false, false, false, false};
+        trajGenLocalPub.publish(trajGenLocal);
         mavCompProcPub.publish(mavCompProc);
         loopRate.sleep();
         MAV1=MAV2=MAV3=false;
@@ -112,7 +133,22 @@ double tToHit(avoidance_msgs::RelPose mav1, avoidance_msgs::RelPose mav2){
     double vel_x = ((mav2.twist.linear.x) * cos(yaw2) - (mav2.twist.linear.y) * sin(yaw2)) - ((mav1.twist.linear.x) * cos(yaw1) - (mav1.twist.linear.y) * sin(yaw1));
     double vel_y = ((mav2.twist.linear.y) * cos(yaw2) + (mav2.twist.linear.x) * sin(yaw2)) - ((mav1.twist.linear.y) * cos(yaw1) + (mav1.twist.linear.x) * sin(yaw1));
     relPose.relVelHead = (atan2(vel_y, vel_x) >= 0) ? atan2(vel_y, vel_x) : atan2(vel_y, vel_x) + 2 * PI;
-    relPose.relVel = sqrt(pow(vel_x, 2) + pow(vel_y, 2))*cos(relPose.relVelHead-relPose.relHead);
-    if(fabs(relPose.relVel)>0.005) return (relPose.relDist/relPose.relVel);
+    relPose.relVel = fabs(sqrt(pow(vel_x, 2) + pow(vel_y, 2))*cos(relPose.relVelHead-relPose.relHead));
+    if(relPose.relVel>0.005) return (relPose.relDist/relPose.relVel);
     else return (relPose.relDist/0.005);
+}
+
+
+void fillUnusedTrajectoryPoint(mavros_msgs::PositionTarget& point) {
+  point.position.x = NAN;
+  point.position.y = NAN;
+  point.position.z = NAN;
+  point.velocity.x = NAN;
+  point.velocity.y = NAN;
+  point.velocity.z = NAN;
+  point.acceleration_or_force.x = NAN;
+  point.acceleration_or_force.y = NAN;
+  point.acceleration_or_force.z = NAN;
+  point.yaw = NAN;
+  point.yaw_rate = NAN;
 }
