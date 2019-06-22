@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="global_pose" type="enu" pkg="avoidance" output="screen">
-        <param name="global/MAVId" value="1"/>
+    <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
+        <param name="mis_obs" value="false"/>
+        <param name="t_to_hit_thresh" value="5"/>
+        <param name="mav_id" value="1"/>
     </node>
 </launch>

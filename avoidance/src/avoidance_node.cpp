@@ -43,12 +43,14 @@ double tToHit(avoidance_msgs::RelPose mav1, avoidance_msgs::RelPose mav2);
 void fillUnusedTrajectoryPoint(mavros_msgs::PositionTarget& point);
 
 int main(int argc, char** argv){
-    ros::init(argc, argv, "enu");
+    ros::init(argc, argv, "avoidance_node");
     ros::NodeHandle nh;
-    std::string MAVId;
+
+    int MAVId;
     double tToHitThresh=5;
-   
-    nh.getParam("MAVId", MAVId);
+    bool misObs=true;
+
+    nh.getParam("avoidance_node/mav_id",MAVId);
     
     ros::Subscriber mav1PoseSub = nh.subscribe("pose_MAV1", 1, MAV1Callback);
     ros::Subscriber mav2PoseSub = nh.subscribe("pose_MAV2", 1, MAV2Callback);
@@ -57,6 +59,7 @@ int main(int argc, char** argv){
 
     ros::Publisher mavCompProcPub = nh.advertise<mavros_msgs::CompanionProcessStatus>("pilot/companion_process/status",1);
     ros::Publisher trajGenLocalPub = nh.advertise<mavros_msgs::Trajectory>("pilot/trajectory/generated", 1);
+    
     ros::Rate loopRate(10);
 
     mavros_msgs::CompanionProcessStatus mavCompProc;
@@ -69,28 +72,32 @@ int main(int argc, char** argv){
     trajGenLocal.header.frame_id = "local_origin";
 
     while(ros::ok()){
-        double tToHitMAV = tToHit(MAV1Pose, MAV2Pose);
-        if (tToHitMAV>tToHitThresh && MAV3) double tToHitMAV = tToHit(MAV1Pose, MAV3Pose);
 
-        if (tToHitMAV<tToHitThresh){
-            trajGenLocal.point_valid = {true, false, false, false, false};
-            trajGenLocal.point_1 = SelfTraj.point_2;
-            trajGenLocal.point_1.position.z = SelfTraj.point_2.position.z-1;
-            trajGenLocal.point_1.velocity.x = NAN;
-            trajGenLocal.point_1.velocity.y = NAN;
-            trajGenLocal.point_1.velocity.z = NAN;
-            trajGenLocal.point_1.acceleration_or_force.x = NAN;
-            trajGenLocal.point_1.acceleration_or_force.y = NAN;
-            trajGenLocal.point_1.acceleration_or_force.z = NAN;
-            trajGenLocal.point_1.yaw = (SelfTraj.point_2.yaw);
-            trajGenLocal.point_1.yaw_rate = NAN;
-            trajGenLocal.time_horizon = {NAN, NAN, NAN, NAN, NAN};
-            fillUnusedTrajectoryPoint(trajGenLocal.point_2);
-            fillUnusedTrajectoryPoint(trajGenLocal.point_3);
-            fillUnusedTrajectoryPoint(trajGenLocal.point_4);
-            fillUnusedTrajectoryPoint(trajGenLocal.point_5);
-        }
-        else trajGenLocal.point_valid = {false, false, false, false, false};
+        nh.getParam("avoidance_node/t_to_hit_thresh", tToHitThresh);
+        nh.getParam("avoidance_node/mis_obs", misObs);
+
+        double tToHitMAV = tToHit(MAV1Pose, MAV2Pose);
+        if (tToHitMAV>tToHitThresh && MAV3) tToHitMAV = tToHit(MAV1Pose, MAV3Pose);
+
+        trajGenLocal.point_valid = {true, false, false, false, false};
+        trajGenLocal.point_1 = SelfTraj.point_2;
+
+        if (tToHitMAV<tToHitThresh && misObs) trajGenLocal.point_1.position.z = SelfTraj.point_2.position.z-((MAVId-2));
+            
+        trajGenLocal.point_1.velocity.x = NAN;
+        trajGenLocal.point_1.velocity.y = NAN;
+        trajGenLocal.point_1.velocity.z = NAN;
+        trajGenLocal.point_1.acceleration_or_force.x = NAN;
+        trajGenLocal.point_1.acceleration_or_force.y = NAN;
+        trajGenLocal.point_1.acceleration_or_force.z = NAN;
+        trajGenLocal.point_1.yaw = 1.57;
+        trajGenLocal.point_1.yaw_rate = NAN;
+        trajGenLocal.time_horizon = {NAN, NAN, NAN, NAN, NAN};
+        fillUnusedTrajectoryPoint(trajGenLocal.point_2);
+        fillUnusedTrajectoryPoint(trajGenLocal.point_3);
+        fillUnusedTrajectoryPoint(trajGenLocal.point_4);
+        fillUnusedTrajectoryPoint(trajGenLocal.point_5);
+
         trajGenLocalPub.publish(trajGenLocal);
         mavCompProcPub.publish(mavCompProc);
         loopRate.sleep();

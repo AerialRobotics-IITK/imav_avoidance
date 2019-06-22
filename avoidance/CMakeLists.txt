@@ -12,8 +12,8 @@ include_directories(${GeographicLib_INCLUDE_DIRS})
 
 cs_add_executable(tester src/tester.cpp)
 target_link_libraries(tester ${GeographicLib_LIBRARIES})
-cs_add_executable(enu src/enu.cpp)
-target_link_libraries(enu ${GeographicLib_LIBRARIES})
+cs_add_executable(avoidance_node src/avoidance_node.cpp)
+target_link_libraries(avoidance_node ${GeographicLib_LIBRARIES})
 
 cs_install()
 cs_export()
