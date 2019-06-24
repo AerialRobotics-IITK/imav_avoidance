@@ -63,11 +63,10 @@ int main(int argc, char** argv){
     ros::Rate loopRate(10);
 
     mavros_msgs::CompanionProcessStatus mavCompProc;
-    mavCompProc.header.frame_id = "";
     mavCompProc.component = 196;
+    mavCompProc.state = 4;
 
     mavros_msgs::Trajectory trajGenLocal;
-    trajGenLocal.header.stamp = ros::Time::now();
     trajGenLocal.type = 0;
     trajGenLocal.header.frame_id = "local_origin";
 
@@ -75,6 +74,9 @@ int main(int argc, char** argv){
 
         nh.getParam("avoidance_node/t_to_hit_thresh", tToHitThresh);
         nh.getParam("avoidance_node/mis_obs", misObs);
+
+        mavCompProc.header.stamp = ros::Time::now();
+        trajGenLocal.header.stamp = ros::Time::now();
 
         double tToHitMAV = tToHit(MAV1Pose, MAV2Pose);
         if (tToHitMAV>tToHitThresh && MAV3) tToHitMAV = tToHit(MAV1Pose, MAV3Pose);
