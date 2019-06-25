@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <GeographicLib/UTMUPS.hpp>
 #include <nav_msgs/Odometry.h>
-#include <avoidance_msgs/RelPose.h>
+#include <mav_utils_msgs/GlobalPose.h>
 #include <tf/transform_datatypes.h>
 #include <mavros_msgs/Trajectory.h>
 #include <mavros_msgs/CompanionProcessStatus.h>
@@ -9,7 +9,7 @@
 #define PI 3.14159265
 
 namespace geoLib = GeographicLib;
-avoidance_msgs::RelPose MAV1Pose, MAV2Pose, MAV3Pose;
+mav_utils_msgs::GlobalPose MAV1Pose, MAV2Pose, MAV3Pose;
 mavros_msgs::Trajectory SelfTraj;
 bool MAV1 = false, MAV2 = false, MAV3 = false;
 
@@ -20,17 +20,17 @@ struct mavRelPose{
     double relVel;
 };
 
-void MAV1Callback(const avoidance_msgs::RelPose &msg){
+void MAV1Callback(const mav_utils_msgs::GlobalPose &msg){
     MAV1Pose = msg;
     MAV1 = true;
 }
 
-void MAV2Callback(const avoidance_msgs::RelPose &msg){
+void MAV2Callback(const mav_utils_msgs::GlobalPose &msg){
     MAV2Pose = msg;
     MAV2 = true;
 }
 
-void MAV3Callback(const avoidance_msgs::RelPose &msg){
+void MAV3Callback(const mav_utils_msgs::GlobalPose &msg){
     MAV3Pose = msg;
     MAV3 = true;
 }
@@ -39,7 +39,7 @@ void trajCallback(const mavros_msgs::Trajectory &msg){
     SelfTraj = msg;
 }
 
-double tToHit(avoidance_msgs::RelPose mav1, avoidance_msgs::RelPose mav2);
+double tToHit(mav_utils_msgs::GlobalPose mav1, mav_utils_msgs::GlobalPose mav2);
 void fillUnusedTrajectoryPoint(mavros_msgs::PositionTarget& point);
 
 int main(int argc, char** argv){
@@ -108,7 +108,7 @@ int main(int argc, char** argv){
     }
 }
 
-double tToHit(avoidance_msgs::RelPose mav1, avoidance_msgs::RelPose mav2){
+double tToHit(mav_utils_msgs::GlobalPose mav1, mav_utils_msgs::GlobalPose mav2){
     int zone;
     bool northp1, northp2;
     double x1, y1, conv1, convRad1, scale1;
@@ -139,8 +139,8 @@ double tToHit(avoidance_msgs::RelPose mav1, avoidance_msgs::RelPose mav2){
     double  yaw2;
     m2.getRPY(r, p, yaw2);
 
-    double vel_x = ((mav2.twist.linear.x) * cos(yaw2) - (mav2.twist.linear.y) * sin(yaw2)) - ((mav1.twist.linear.x) * cos(yaw1) - (mav1.twist.linear.y) * sin(yaw1));
-    double vel_y = ((mav2.twist.linear.y) * cos(yaw2) + (mav2.twist.linear.x) * sin(yaw2)) - ((mav1.twist.linear.y) * cos(yaw1) + (mav1.twist.linear.x) * sin(yaw1));
+    double vel_x = ((mav2.linear_twist.x) * cos(yaw2) - (mav2.linear_twist.y) * sin(yaw2)) - ((mav1.linear_twist.x) * cos(yaw1) - (mav1.linear_twist.y) * sin(yaw1));
+    double vel_y = ((mav2.linear_twist.y) * cos(yaw2) + (mav2.linear_twist.x) * sin(yaw2)) - ((mav1.linear_twist.y) * cos(yaw1) + (mav1.linear_twist.x) * sin(yaw1));
     relPose.relVelHead = (atan2(vel_y, vel_x) >= 0) ? atan2(vel_y, vel_x) : atan2(vel_y, vel_x) + 2 * PI;
     relPose.relVel = fabs(sqrt(pow(vel_x, 2) + pow(vel_y, 2))*cos(relPose.relVelHead-relPose.relHead));
     if(relPose.relVel>0.005) return (relPose.relDist/relPose.relVel);
