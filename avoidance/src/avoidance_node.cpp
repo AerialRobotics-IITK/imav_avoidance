@@ -143,7 +143,9 @@ double tToHit(mav_utils_msgs::GlobalPose mav1, mav_utils_msgs::GlobalPose mav2){
     double vel_y = ((mav2.linear_twist.y) * cos(yaw2) + (mav2.linear_twist.x) * sin(yaw2)) - ((mav1.linear_twist.y) * cos(yaw1) + (mav1.linear_twist.x) * sin(yaw1));
     relPose.relVelHead = (atan2(vel_y, vel_x) >= 0) ? atan2(vel_y, vel_x) : atan2(vel_y, vel_x) + 2 * PI;
     relPose.relVel = fabs(sqrt(pow(vel_x, 2) + pow(vel_y, 2))*cos(relPose.relVelHead-relPose.relHead));
-    if(relPose.relVel>0.005) return (relPose.relDist/relPose.relVel);
+    if(relPose.relVel>0.005 && relPose.relDist>2.0) return (relPose.relDist/relPose.relVel);
+    //put this as a prarmeter
+    else if (relPose.relDist<2.0) return 0;
     else return (relPose.relDist/0.005);
 }
 
