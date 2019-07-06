@@ -1,4 +1,4 @@
-#include "avoidance/avoid.h"
+#include "avoidance/avoidance.h"
 
 namespace avoidance {
 Avoidance::Avoidance(const ros::NodeHandle &nh,
@@ -31,6 +31,7 @@ Avoidance::Avoidance(const ros::NodeHandle &nh,
 void Avoidance::mav1Callback(const mav_utils_msgs::GlobalPose &msg) {
   mav1_pose = msg;
   mav1 = true;
+  trajPubCallback();
 }
 void Avoidance::mav2Callback(const mav_utils_msgs::GlobalPose &msg) {
   mav2_pose = msg;
@@ -150,5 +151,6 @@ void Avoidance::trajPubCallback() {
   fillUnusedTrajectoryPoint(traj_gen_local.point_5);
 
   traj_gen_local_pub.publish(traj_gen_local);
+  compProcPubCallback();
 }
-}
+}  // namespace avoidance
