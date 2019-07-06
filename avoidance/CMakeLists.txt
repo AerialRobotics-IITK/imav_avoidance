@@ -10,8 +10,18 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(GeographicLib REQUIRED)
 include_directories(${GeographicLib_INCLUDE_DIRS})
 
+#############
+# LIBRARIES #
+#############
+cs_add_library(${PROJECT_NAME}
+  src/avoidance.cpp
+)
+target_link_libraries(${PROJECT_NAME} ${GeographicLib_LIBRARIES})
+
 cs_add_executable(tester src/tester.cpp)
 target_link_libraries(tester ${GeographicLib_LIBRARIES})
+cs_add_executable(avoid_test src/avoid_test.cpp)
+target_link_libraries(avoid_test  ${PROJECT_NAME})
 cs_add_executable(avoidance_node src/avoidance_node.cpp)
 target_link_libraries(avoidance_node ${GeographicLib_LIBRARIES})
 
