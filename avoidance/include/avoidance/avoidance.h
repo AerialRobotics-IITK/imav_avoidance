@@ -1,5 +1,5 @@
-#ifndef AVOIDANCE_AVOID_H_
-#define AVOIDANCE_AVOID_H_
+#ifndef AVOIDANCE_AVOIDANCE_H_
+#define AVOIDANCE_AVOIDANCE_H_
 
 #include <mav_utils_msgs/GlobalPose.h>
 #include <mavros_msgs/CompanionProcessStatus.h>
