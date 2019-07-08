@@ -1,10 +1,8 @@
 <?xml version="1.0"?>
 <launch>
     <!-- <group ns=""> -->
-    <node name="avoid_test" type="avoid_test" pkg="avoidance" output="screen">
-        <param name="mission_obs" value="false"/>
-        <param name="t_to_hit_thresh" value="2"/>
-        <param name="mav_id" value="3"/>
+    <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
+        <rosparam file="$(find avoidance)/cfg/avoidance_param.yaml"/>
     </node>
     <!-- </group> -->
 </launch>

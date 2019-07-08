@@ -10,11 +10,13 @@ Avoidance::Avoidance(const ros::NodeHandle &nh,
       mav3(false),
       mission_obs(true),
       time_to_hit_thresh(5.0),
+      min_dist(2.0),
       mav_id(2) {
   nh_private_.param("mav_id", mav_id, mav_id);
   nh_private_.param("mission_obs", mission_obs, mission_obs);
   nh_private_.param("time_to_hit_thresh", time_to_hit_thresh,
                     time_to_hit_thresh);
+  nh_private_.param("min_dist", min_dist, min_dist);
 
   mav1_pose_sub = nh_.subscribe("pose_mav1", 1, &Avoidance::mav1Callback, this);
   mav2_pose_sub = nh_.subscribe("pose_mav2", 1, &Avoidance::mav2Callback, this);
@@ -31,7 +33,7 @@ Avoidance::Avoidance(const ros::NodeHandle &nh,
 void Avoidance::mav1Callback(const mav_utils_msgs::GlobalPose &msg) {
   mav1_pose = msg;
   mav1 = true;
-  trajPubCallback();
+  compProcPubCallback();
 }
 void Avoidance::mav2Callback(const mav_utils_msgs::GlobalPose &msg) {
   mav2_pose = msg;
@@ -44,6 +46,7 @@ void Avoidance::mav3Callback(const mav_utils_msgs::GlobalPose &msg) {
 
 void Avoidance::trajCallback(const mavros_msgs::Trajectory &msg) {
   self_traj = msg;
+  trajPubCallback();
 }
 
 double Avoidance::tToHit(mav_utils_msgs::GlobalPose mav1,
@@ -87,11 +90,11 @@ double Avoidance::tToHit(mav_utils_msgs::GlobalPose mav1,
                              : atan2(vel_y, vel_x) + 2 * PI;
   relPose.rel_vel = fabs(sqrt(pow(vel_x, 2) + pow(vel_y, 2)) *
                          cos(relPose.rel_vel_head - relPose.rel_head));
-  if (relPose.rel_vel > 0.005 && relPose.rel_dist > 2.0)
+  if (relPose.rel_vel > 0.005 && relPose.rel_dist > min_dist)
     return (relPose.rel_dist / relPose.rel_vel);
   // put this as a prarmeter
-  else if (relPose.rel_dist < 2.0)
-    return 0;
+  else if (relPose.rel_dist < min_dist)
+    return 0.01;
   else
     return (relPose.rel_dist / 0.005);
 }
@@ -132,13 +135,14 @@ void Avoidance::trajPubCallback() {
   traj_gen_local.point_valid = {true, false, false, false, false};
   traj_gen_local.point_1 = self_traj.point_2;
 
-  if (t_to_hit_mav < time_to_hit_thresh && mission_obs)
+  if (t_to_hit_mav < time_to_hit_thresh && mission_obs) {
     traj_gen_local.point_1.position.z =
         self_traj.point_2.position.z - ((mav_id - 2));
+    traj_gen_local.point_1.velocity.z = 2 * (1.0 / t_to_hit_mav) * (2 - mav_id);
+  }
 
   traj_gen_local.point_1.velocity.x = NAN;
   traj_gen_local.point_1.velocity.y = NAN;
-  traj_gen_local.point_1.velocity.z = NAN;
   traj_gen_local.point_1.acceleration_or_force.x = NAN;
   traj_gen_local.point_1.acceleration_or_force.y = NAN;
   traj_gen_local.point_1.acceleration_or_force.z = NAN;
@@ -151,6 +155,5 @@ void Avoidance::trajPubCallback() {
   fillUnusedTrajectoryPoint(traj_gen_local.point_5);
 
   traj_gen_local_pub.publish(traj_gen_local);
-  compProcPubCallback();
 }
 }  // namespace avoidance

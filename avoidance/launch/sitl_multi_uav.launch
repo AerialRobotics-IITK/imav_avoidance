@@ -2,32 +2,35 @@
 <launch>
     <group ns="uav0">
     <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
-        <param name="mis_obs" value="true"/>
+        <param name="mission_obs" value="true"/>
         <param name="t_to_hit_thresh" value="5"/>
+        <param name="min_dist" value="5"/>
         <param name="mav_id" value="1"/>
-        <remap from="pose_MAV1" to="mav_avoidance_pose"/>
-        <remap from="pose_MAV2" to="/uav1/mav_avoidance_pose"/>
-        <remap from="pose_MAV3" to="/uav2/mav_avoidance_pose"/>
+        <remap from="pose_mav1" to="mav_avoidance_pose"/>
+        <remap from="pose_mav2" to="/uav1/mav_avoidance_pose"/>
+        <remap from="pose_mav3" to="/uav2/mav_avoidance_pose"/>
     </node>
     </group>
     <group ns="uav1">
     <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
-        <param name="mis_obs" value="true"/>
+        <param name="mission_obs" value="true"/>
         <param name="t_to_hit_thresh" value="5"/>
+        <param name="min_dist" value="5"/>
         <param name="mav_id" value="2"/>
-        <remap from="pose_MAV1" to="mav_avoidance_pose"/>
-        <remap from="pose_MAV2" to="/uav0/mav_avoidance_pose"/>
-        <remap from="pose_MAV3" to="/uav2/mav_avoidance_pose"/>
+        <remap from="pose_mav1" to="mav_avoidance_pose"/>
+        <remap from="pose_mav2" to="/uav0/mav_avoidance_pose"/>
+        <remap from="pose_mav3" to="/uav2/mav_avoidance_pose"/>
     </node>
     </group>
     <group ns="uav2">
     <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
-        <param name="mis_obs" value="true"/>
+        <param name="mission_obs" value="true"/>
         <param name="t_to_hit_thresh" value="5"/>
+        <param name="min_dist" value="5"/>
         <param name="mav_id" value="3"/>
-        <remap from="pose_MAV1" to="mav_avoidance_pose"/>
-        <remap from="pose_MAV2" to="/uav1/mav_avoidance_pose"/>
-        <remap from="pose_MAV3" to="/uav0/mav_avoidance_pose"/>
+        <remap from="pose_mav1" to="mav_avoidance_pose"/>
+        <remap from="pose_mav2" to="/uav1/mav_avoidance_pose"/>
+        <remap from="pose_mav3" to="/uav0/mav_avoidance_pose"/>
     </node>
     </group>
 </launch>

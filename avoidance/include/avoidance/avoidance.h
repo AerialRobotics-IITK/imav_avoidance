@@ -40,7 +40,7 @@ class Avoidance {
   mavros_msgs::Trajectory self_traj;
 
   bool mav1, mav2, mav3, mission_obs;
-  double time_to_hit_thresh;
+  double time_to_hit_thresh, min_dist;
   int mav_id;
 
   ros::NodeHandle nh_, nh_private_;
