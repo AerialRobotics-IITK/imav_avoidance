@@ -1,9 +1,15 @@
-mission_obs: true 
+mpc_enable: true
+# [boolean] enable mpc controller setpoints
+flight_alt: 5.0
+# [meter] where vehicle will perform search
+delta_z: 1.2
+# [meter] avoidance envelope = flight_alt +- delta_z
+mission_obs: true
 # [boolean] enable obstacle avoidance in mission_mode
-time_to_hit_thresh: 5.0 
-# [sec] threshold for time to hit any other mav, by increasing this: mav will show response from far distance with less velocity  
-min_dist: 5.0 
+time_to_hit_thresh: 5.0
+# [sec] threshold for time to hit any other mav, by increasing this: mav will show response from far distance with less velocity
+min_dist: 5.0
 # [meter] minimum distance for avoidance if time to hit is greater than time_to_hit_thresh
 mav_id: 2
-# [id] based on id mav decide its trajectory in z-direction 
-#  z_sp = z-(mav_id-2) 
+# [id] based on id mav decide its trajectory in z-direction
+#  z_sp = z-(mav_id-2)

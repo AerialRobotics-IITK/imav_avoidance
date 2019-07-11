@@ -4,33 +4,42 @@
     <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
         <param name="mission_obs" value="true"/>
         <param name="t_to_hit_thresh" value="5"/>
-        <param name="min_dist" value="5"/>
+        <param name="min_dist" value="3"/>
+        <param name="flight_alt" value="5"/>
+        <param name="delta_z" value="0.2"/>
         <param name="mav_id" value="1"/>
-        <remap from="pose_mav1" to="mav_avoidance_pose"/>
-        <remap from="pose_mav2" to="/uav1/mav_avoidance_pose"/>
-        <remap from="pose_mav3" to="/uav2/mav_avoidance_pose"/>
+        <remap from="command/pose" to="pilot/setpoint_position/local"/>
+        <remap from="pose_mav1" to="utm_pose"/>
+        <remap from="pose_mav2" to="/uav1/utm_pose"/>
+        <remap from="pose_mav3" to="/uav2/utm_pose"/>
     </node>
     </group>
     <group ns="uav1">
     <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
         <param name="mission_obs" value="true"/>
         <param name="t_to_hit_thresh" value="5"/>
-        <param name="min_dist" value="5"/>
+        <param name="min_dist" value="3"/>
+        <param name="flight_alt" value="5"/>
+        <param name="delta_z" value="0.2"/>
         <param name="mav_id" value="2"/>
-        <remap from="pose_mav1" to="mav_avoidance_pose"/>
-        <remap from="pose_mav2" to="/uav0/mav_avoidance_pose"/>
-        <remap from="pose_mav3" to="/uav2/mav_avoidance_pose"/>
+        <remap from="command/pose" to="pilot/setpoint_position/local"/>
+        <remap from="pose_mav1" to="utm_pose"/>
+        <remap from="pose_mav2" to="/uav0/utm_pose"/>
+        <remap from="pose_mav3" to="/uav2/utm_pose"/>
     </node>
     </group>
     <group ns="uav2">
     <node name="avoidance_node" type="avoidance_node" pkg="avoidance" output="screen">
         <param name="mission_obs" value="true"/>
         <param name="t_to_hit_thresh" value="5"/>
-        <param name="min_dist" value="5"/>
+        <param name="min_dist" value="3"/>
+        <param name="flight_alt" value="5"/>
+        <param name="delta_z" value="0.2"/>
         <param name="mav_id" value="3"/>
-        <remap from="pose_mav1" to="mav_avoidance_pose"/>
-        <remap from="pose_mav2" to="/uav1/mav_avoidance_pose"/>
-        <remap from="pose_mav3" to="/uav0/mav_avoidance_pose"/>
+        <remap from="command/pose" to="pilot/setpoint_position/local"/>
+        <remap from="pose_mav1" to="utm_pose"/>
+        <remap from="pose_mav2" to="/uav1/utm_pose"/>
+        <remap from="pose_mav3" to="/uav0/utm_pose"/>
     </node>
     </group>
 </launch>
