@@ -5,16 +5,15 @@ Avoidance::Avoidance(const ros::NodeHandle &nh,
                      const ros::NodeHandle &nh_private)
     : nh_(nh),
       nh_private_(nh_private),
-      mav1(false),
-      mav2(false),
-      mav3(false),
+      mav3_check(false),
       mission_obs(true),
+      mpc_enable(false),
       time_to_hit_thresh(5.0),
       min_dist(2.0),
       flight_alt(3.0),
-      mpc_enable(false),
-      mav_id(2),
-      delta_z(1) {
+      delta_z(1),
+      mav_id(2){
+  // ros parameters
   nh_private_.param("mission_obs", mission_obs, mission_obs);
   nh_private_.param("time_to_hit_thresh", time_to_hit_thresh,
                     time_to_hit_thresh);
@@ -24,6 +23,7 @@ Avoidance::Avoidance(const ros::NodeHandle &nh,
   nh_private_.param("mpc_enable", mpc_enable, mpc_enable);
   nh_private_.param("mav_id", mav_id, mav_id);
 
+  // ros subscribers
   mav1_pose_sub = nh_.subscribe("pose_mav1", 1, &Avoidance::mav1Callback, this);
   mav2_pose_sub = nh_.subscribe("pose_mav2", 1, &Avoidance::mav2Callback, this);
   mav3_pose_sub = nh_.subscribe("pose_mav3", 1, &Avoidance::mav3Callback, this);
@@ -36,6 +36,7 @@ Avoidance::Avoidance(const ros::NodeHandle &nh,
   mission_setpoint_sub = nh_.subscribe(
       "mission_setpoint", 1, &Avoidance::missionSetpointCallback, this);
 
+  // ros publishers
   mav_comp_proc_pub = nh_.advertise<mavros_msgs::CompanionProcessStatus>(
       "pilot/companion_process/status", 1, true);
   traj_gen_local_pub = nh_.advertise<mavros_msgs::Trajectory>(
@@ -48,16 +49,17 @@ Avoidance::Avoidance(const ros::NodeHandle &nh,
 
 void Avoidance::mav1Callback(const mav_utils_msgs::UTMPose &msg) {
   mav1_pose = msg;
-  mav1 = true;
   compProcPubCallback();
+  offboardControlPubCallback();
 }
+
 void Avoidance::mav2Callback(const mav_utils_msgs::UTMPose &msg) {
   mav2_pose = msg;
-  mav2 = true;
 }
+
 void Avoidance::mav3Callback(const mav_utils_msgs::UTMPose &msg) {
   mav3_pose = msg;
-  mav3 = true;
+  mav3_check = true;
 }
 
 void Avoidance::trajCallback(const mavros_msgs::Trajectory &msg) {
@@ -81,8 +83,11 @@ void Avoidance::mavStateCallback(const mavros_msgs::State &msg) {
 double Avoidance::tToHit(mav_utils_msgs::UTMPose mav1,
                          mav_utils_msgs::UTMPose mav2) {
   struct Avoidance::MAVRelPose relPose;
+
+  // distance between two mavs
   relPose.rel_dist = sqrt(pow(mav2.pose.position.x - mav1.pose.position.x, 2) +
                           pow(mav2.pose.position.y - mav1.pose.position.y, 2));
+  // relative heading
   relPose.rel_head = (atan2(mav2.pose.position.y - mav1.pose.position.y,
                             mav2.pose.position.x - mav1.pose.position.x) >= 0)
                          ? atan2(mav2.pose.position.y - mav1.pose.position.y,
@@ -111,11 +116,17 @@ double Avoidance::tToHit(mav_utils_msgs::UTMPose mav1,
   double vel_y =
       ((mav2.linear_twist.y) * cos(yaw2) + (mav2.linear_twist.x) * sin(yaw2)) -
       ((mav1.linear_twist.y) * cos(yaw1) + (mav1.linear_twist.x) * sin(yaw1));
+
+  // relative headig between velocities
   relPose.rel_vel_head = (atan2(vel_y, vel_x) >= 0)
                              ? atan2(vel_y, vel_x)
                              : atan2(vel_y, vel_x) + 2 * PI;
+
+  // relative velocity
   relPose.rel_vel = fabs(sqrt(pow(vel_x, 2) + pow(vel_y, 2)) *
                          cos(relPose.rel_vel_head - relPose.rel_head));
+
+  // handling almost zero velocity before publishing time to hit
   if (relPose.rel_vel > 0.005 && relPose.rel_dist > min_dist)
     return (relPose.rel_dist / relPose.rel_vel);
   else if (relPose.rel_dist < min_dist)
@@ -146,42 +157,46 @@ void Avoidance::compProcPubCallback() {
   mav_comp_proc_pub.publish(mav_comp_proc);
 }
 
+bool Avoidance::collision() {
+  // time to hit first mav
+  double t_to_hit_mav = tToHit(mav1_pose, mav2_pose);
+
+  // if not hitting first then check for other
+  if (t_to_hit_mav > time_to_hit_thresh && mav3_check) {
+    t_to_hit_mav = tToHit(mav1_pose, mav3_pose);
+  }
+
+  if (t_to_hit_mav < time_to_hit_thresh && mission_obs)
+    return true;
+  else
+    return false;
+}
+
 void Avoidance::trajPubCallback() {
   mavros_msgs::Trajectory traj_gen_local;
+  traj_gen_local.type = 0;
+  traj_gen_local.header.frame_id = "local_origin";
+  traj_gen_local.header.stamp = ros::Time::now();
+  // only publishing first point, filling others with NAN
+  traj_gen_local.point_valid = {true, false, false, false, false};
   fillUnusedTrajectoryPoint(traj_gen_local.point_2);
   fillUnusedTrajectoryPoint(traj_gen_local.point_3);
   fillUnusedTrajectoryPoint(traj_gen_local.point_4);
   fillUnusedTrajectoryPoint(traj_gen_local.point_5);
-  traj_gen_local.type = 0;
-  traj_gen_local.header.frame_id = "local_origin";
-  traj_gen_local.header.stamp = ros::Time::now();
-  traj_gen_local.point_valid = {true, false, false, false, false};
+
+  // keeping all points same as mission setpoint and changing yaw to fix
   traj_gen_local.point_1 = self_traj.point_2;
   traj_gen_local.point_1.yaw = 1.57;
 
-  double t_to_hit_mav = tToHit(mav1_pose, mav2_pose);
-
-  if (t_to_hit_mav > time_to_hit_thresh && mav3) {
-    t_to_hit_mav = tToHit(mav1_pose, mav3_pose);
+  // if time to hit less than threshold then modify setpoints
+  if (mav_state.mode == "AUTO.MISSION" &&
+      (((flight_alt - delta_z) < self_traj.point_2.position.z) &&
+       ((flight_alt + delta_z) > self_traj.point_2.position.z)) &&
+      collision() && mission_obs) {
+    traj_gen_local.point_1.position.z =
+        self_traj.point_2.position.z - ((mav_id - 2));
+    traj_gen_local.point_1.velocity.z = (5 * (2 - mav_id));
   }
-
-  if (t_to_hit_mav < time_to_hit_thresh && mission_obs) {
-    if (mav_state.mode == "AUTO.MISSION" &&
-        (((flight_alt - delta_z) < self_traj.point_2.position.z) &&
-         ((flight_alt + delta_z) > self_traj.point_2.position.z))) {
-      traj_gen_local.point_1.position.z =
-          self_traj.point_2.position.z - ((mav_id - 2));
-      traj_gen_local.point_1.velocity.z =
-          (4 * (1.0 / t_to_hit_mav) * (2 - mav_id));
-    }
-
-    if (mav_state.mode == "OFFBOARD" &&
-        (((flight_alt - delta_z) < mission_setpoint.point.z) &&
-         ((flight_alt + delta_z) > mission_setpoint.point.z))) {
-      mission_setpoint.point.z = mission_setpoint.point.z - (mav_id - 2);
-    }
-  }
-  offboardControlPubCallback();
   traj_gen_local_pub.publish(traj_gen_local);
 }
 
@@ -189,6 +204,13 @@ void Avoidance::offboardControlPubCallback() {
   geometry_msgs::PoseStamped pose_setpoint;
 
   pose_setpoint.pose.position = mission_setpoint.point;
+
+  if (mav_state.mode == "OFFBOARD" &&
+      (((flight_alt - delta_z) < mission_setpoint.point.z) &&
+       ((flight_alt + delta_z) > mission_setpoint.point.z)) &&
+      collision() && mission_obs) {
+    pose_setpoint.pose.position.z = mission_setpoint.point.z - (mav_id - 2);
+  }
 
   tf2::Quaternion setpoint_quat;
   setpoint_quat.setRPY(0, 0, 1.57);
