@@ -62,7 +62,7 @@ Maintainer : Gajendra Nagar (gajendranagar02@gmail.com)
 
 * delta_z(double, default:=1.0)
 
-    [meter] avoidance envelope = flight_alt +- delta_z
+    [meter] avoidance envelope = flight_alt +/- delta_z
 * mission_obs(bool, default:=true)
     
     enable obstacle avoidance in mission_mode
@@ -72,6 +72,7 @@ Maintainer : Gajendra Nagar (gajendranagar02@gmail.com)
     [sec] threshold for time to hit any other mav, by increasing this: mav will show response from far distance with less velocity
 
 * min_dist(double, default:=5.0)
+    
     [meter] minimum distance for avoidance if time to hit is greater than time_to_hit_thresh
 
 * mav_id(int, default:=2)
